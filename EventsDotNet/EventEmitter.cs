@@ -6,7 +6,7 @@ public class EventEmitter<I, O>
 
   public event EmiterDelegate Emitter;
 
-  public void On(Func<I, bool> condition, Action<I> cb)
+  public EventEmitter<I, O> On(Func<I, bool> condition, Action<I> cb)
   {
     Emitter += (o, n) =>
     {
@@ -15,31 +15,24 @@ public class EventEmitter<I, O>
         cb(n);
       }
     };
+
+    return this;
   }
-  
-  public void On(Func<I, I, bool> condition, Action<I> cb)
-  {
-    Emitter += (o, n) =>
-    {
-      if (condition(o, n))
-      {
-        cb(n);
-      }
-    };
-  }
-  
-  public void On(Func<I, I, Task<bool>> condition, Action<I> cb)
+
+  public EventEmitter<I, O> On(Func<I, bool> condition, Func<I, Task> cb)
   {
     Emitter += async (o, n) =>
     {
-      if (await condition(o, n))
+      if (condition(n) && !condition(o))
       {
-        cb(n);
+        await cb(n);
       }
     };
+
+    return this;
   }
 
-  public void On(Func<I, Task<bool>> condition, Action<I> cb)
+  public EventEmitter<I, O> On(Func<I, Task<bool>> condition, Action<I> cb)
   {
     Emitter += async (o, n) =>
     {
@@ -48,13 +41,67 @@ public class EventEmitter<I, O>
         cb(n);
       }
     };
+
+    return this;
   }
 
-  public void On<R, RI>(Func<RI> input, Func<RI, bool> condition, Action<I> cb)
+  public EventEmitter<I, O> On(Func<I, Task<bool>> condition, Func<I, Task> cb)
+  {
+    Emitter += async (o, n) =>
+    {
+      if (await condition(n) && !await condition(o))
+      {
+        await cb(n);
+      }
+    };
+
+    return this;
+  }
+
+  public EventEmitter<I, O> On(Func<I, I, bool> condition, Action<I> cb)
+  {
+    Emitter += (o, n) =>
+    {
+      if (condition(o, n))
+      {
+        cb(n);
+      }
+    };
+
+    return this;
+  }
+  
+  public EventEmitter<I, O> On(Func<I, I, Task<bool>> condition, Action<I> cb)
+  {
+    Emitter += async (o, n) =>
+    {
+      if (await condition(o, n))
+      {
+        cb(n);
+      }
+    };
+
+    return this;
+  }
+
+  public EventEmitter<I, O> On<R, RI>(Func<RI> input, Func<RI, bool> condition, Action<I> cb)
   {
     Emitter += (o, n) =>
     {
       if (condition(input()))
+      {
+        cb(n);
+      }
+    };
+
+    return this;
+  }
+
+  public void On(I value, Action<I> cb)
+  {
+    Emitter += async (o, n) =>
+    {
+      if (n.Equals(value) && !o.Equals(value))
       {
         cb(n);
       }
